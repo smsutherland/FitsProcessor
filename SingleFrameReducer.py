@@ -65,3 +65,9 @@ class SingleFrameReducer:
             raise Exception("call set_bias_frames before bias subtracting")
         
         return np.subtract(frame, self._bias_frame + exposure_time*self._dark_current_frame, out=out)
+
+    def bias_frame(self) -> np.ndarray:
+        return np.copy(self._bias_frame)
+    
+    def dark_current_frame(self) -> np.ndarray:
+        return np.copy(self._dark_current_frame)
