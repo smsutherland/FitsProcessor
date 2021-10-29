@@ -67,6 +67,13 @@ class FitsFile:
         """
 
         return self * (1/value)
+    
+    def from_header(self, key: str):
+        """
+        TODO
+        """
+
+        return self._header[key]
 
 def from_file(fname: str) -> FitsFile:
     """
