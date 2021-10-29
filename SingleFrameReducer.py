@@ -50,10 +50,18 @@ class SingleFrameReducer:
         self.bias_subtract(dark_current_frames, out=dark_current_frames)
         for frame, exp_time in zip(dark_current_frames, [fits.getheader(fname)["EXPTIME"] for fname in file_name_list]):
             np.divide(frame, exp_time, out=frame)
-        np.mean(dark_current_frames, axis=0, out=self._dark_current_frame)
+        self._dark_current_frame = np.mean(dark_current_frames, axis=0)
     
     def bias_subtract(self, frame: np.ndarray, out: Union[None, np.ndarray] = None) -> np.ndarray:
         if self._bias_frame is None:
             raise Exception("call set_bias_frames before bias subtracting")
         
         return np.subtract(frame, self._bias_frame, out=out)
+
+    def dark_subtract(self, frame: np.ndarray, exposure_time: float, out: Union[None, np.ndarray] = None) -> np.ndarray:
+        if self._dark_current_frame is None:
+            raise Exception("call set_dark_current_frames before dark subtracting")
+        if self._bias_frame is None:
+            raise Exception("call set_bias_frames before bias subtracting")
+        
+        return np.subtract(frame, self._bias_frame + exposure_time*self._dark_current_frame, out=out)
