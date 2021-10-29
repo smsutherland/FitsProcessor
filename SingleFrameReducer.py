@@ -9,11 +9,13 @@ class SingleFrameReducer:
 
     Stores data relevant to the processing.
     """
+
     _bias_frame: np.ndarray = None
     _dark_current_frame: np.ndarray = None
     
     def set_bias_frames(self, file_name: Union[str, List[str]]) -> None:
         """
+        TODO
         """
 
         file_name_list = []
@@ -31,6 +33,7 @@ class SingleFrameReducer:
 
     def set_dark_current_frames(self, file_name: Union[str, List[str]]) -> None:
         """
+        TODO
         """
 
         if self._bias_frame is None:
@@ -53,12 +56,20 @@ class SingleFrameReducer:
         self._dark_current_frame = np.mean(dark_current_frames, axis=0)
     
     def bias_subtract(self, frame: np.ndarray, out: Union[None, np.ndarray] = None) -> np.ndarray:
+        """
+        TODO
+        """
+
         if self._bias_frame is None:
             raise Exception("call set_bias_frames before bias subtracting")
         
         return np.subtract(frame, self._bias_frame, out=out)
 
     def dark_subtract(self, frame: np.ndarray, exposure_time: float, out: Union[None, np.ndarray] = None) -> np.ndarray:
+        """
+        TODO
+        """
+
         if self._dark_current_frame is None:
             raise Exception("call set_dark_current_frames before dark subtracting")
         if self._bias_frame is None:
@@ -67,7 +78,15 @@ class SingleFrameReducer:
         return np.subtract(frame, self._bias_frame + exposure_time*self._dark_current_frame, out=out)
 
     def bias_frame(self) -> np.ndarray:
+        """
+        TODO
+        """
+
         return np.copy(self._bias_frame)
     
     def dark_current_frame(self) -> np.ndarray:
+        """
+        TODO
+        """
+
         return np.copy(self._dark_current_frame)
