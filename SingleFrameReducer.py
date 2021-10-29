@@ -1,6 +1,6 @@
 import numpy as np
+import Image
 from glob import glob
-from astropy.io import fits
 from typing import Union, List
 
 class SingleFrameReducer:
@@ -10,8 +10,8 @@ class SingleFrameReducer:
     Stores data relevant to the processing.
     """
 
-    _bias_frame: np.ndarray = None
-    _dark_current_frame: np.ndarray = None
+    _bias_frame: Image.Image = None
+    _dark_current_frame: Image.Image = None
     
     def set_bias_frames(self, file_name: Union[str, List[str]]) -> None:
         """
@@ -28,7 +28,8 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        bias_frames = [fits.getdata(fname)*fits.getheader(fname)["EGAIN"] for fname in file_name_list]
+        bias_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
+        bias_frames = [frame[0]*frame[1]["EGAIN"] for frame in bias_frames_full]
         self._bias_frame = np.mean(bias_frames, axis=0)
 
     def set_dark_current_frames(self, file_name: Union[str, List[str]]) -> None:
@@ -49,13 +50,16 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        dark_current_frames = np.array([fits.getdata(fname)*fits.getheader(fname)["EGAIN"] for fname in file_name_list])
-        self.bias_subtract(dark_current_frames, out=dark_current_frames)
-        for frame, exp_time in zip(dark_current_frames, [fits.getheader(fname)["EXPTIME"] for fname in file_name_list]):
-            np.divide(frame, exp_time, out=frame)
-        self._dark_current_frame = np.mean(dark_current_frames, axis=0)
+        dark_current_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
+        dark_current_frames = [frame[0]*frame[1]["EGAIN"] for frame in dark_current_frames_full]
+        dark_current_frames_bias_subtracted = [self.bias_subtract(frame) for frame in dark_current_frames]
+
+        exposure_times = [frame[1]["EXPTIME"] for frame in dark_current_frames_full]
+        for frame, exposure_time in zip(dark_current_frames_bias_subtracted, exposure_times):
+            frame = frame/exposure_time
+        self._dark_current_frame = np.mean(dark_current_frames_bias_subtracted, axis=0)
     
-    def bias_subtract(self, frame: np.ndarray, out: Union[None, np.ndarray] = None) -> np.ndarray:
+    def bias_subtract(self, frame: Image.Image) -> Image.Image:
         """
         TODO
         """
@@ -63,9 +67,9 @@ class SingleFrameReducer:
         if self._bias_frame is None:
             raise Exception("call set_bias_frames before bias subtracting")
         
-        return np.subtract(frame, self._bias_frame, out=out)
+        return frame - self._bias_frame
 
-    def dark_subtract(self, frame: np.ndarray, exposure_time: float, out: Union[None, np.ndarray] = None) -> np.ndarray:
+    def dark_subtract(self, frame: Image.Image, exposure_time: float) -> Image.Image:
         """
         TODO
         """
@@ -75,16 +79,16 @@ class SingleFrameReducer:
         if self._bias_frame is None:
             raise Exception("call set_bias_frames before bias subtracting")
         
-        return np.subtract(frame, self._bias_frame + exposure_time*self._dark_current_frame, out=out)
+        return frame - (self._bias_frame + exposure_time*self._dark_current_frame)
 
-    def bias_frame(self) -> np.ndarray:
+    def bias_frame(self) -> Image.Image:
         """
         TODO
         """
 
         return np.copy(self._bias_frame)
     
-    def dark_current_frame(self) -> np.ndarray:
+    def dark_current_frame(self) -> Image.Image:
         """
         TODO
         """
