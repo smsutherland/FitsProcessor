@@ -29,7 +29,7 @@ def from_array(arr: np.ndarray) -> Image:
         arr = np.array(arr)
     return arr.copy().view(Image)
 
-def from_file(fname: str, return_header: bool = False) -> Union[Image, Tuple[Image, fits.header.Header]]:
+def from_file(fname: str, return_header: bool = False, multiply_gain: bool = True) -> Union[Image, Tuple[Image, fits.header.Header]]:
     """
     TODO
     """
@@ -37,7 +37,11 @@ def from_file(fname: str, return_header: bool = False) -> Union[Image, Tuple[Ima
     if not os.path.exists(fname):
         raise FileNotFoundError(f"file '{fname} does not exist'")
     image = from_array(fits.getdata(fname))
+
+    header = fits.getheader(fname)
+    if multiply_gain:
+        image = image*header["EGAIN"]
+    
     if not return_header:
         return image
-    header = fits.getheader(fname)
     return (image, header)

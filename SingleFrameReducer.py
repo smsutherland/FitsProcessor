@@ -28,8 +28,7 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        bias_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
-        bias_frames = [frame[0]*frame[1]["EGAIN"] for frame in bias_frames_full]
+        bias_frames = [Image.from_file(fname) for fname in file_name_list]
         self._bias_frame = np.mean(bias_frames, axis=0)
 
     def set_dark_current_frames(self, file_name: Union[str, List[str]]) -> None:
@@ -51,8 +50,7 @@ class SingleFrameReducer:
             raise Exception("No files specified or file not found.")
         
         dark_current_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
-        dark_current_frames = [frame[0]*frame[1]["EGAIN"] for frame in dark_current_frames_full]
-        dark_current_frames_bias_subtracted = [self.bias_subtract(frame) for frame in dark_current_frames]
+        dark_current_frames_bias_subtracted = [self.bias_subtract(frame[0]) for frame in dark_current_frames_full]
 
         exposure_times = [frame[1]["EXPTIME"] for frame in dark_current_frames_full]
         for frame, exposure_time in zip(dark_current_frames_bias_subtracted, exposure_times):
