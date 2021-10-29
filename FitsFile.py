@@ -1,6 +1,6 @@
 import numpy as np
 from astropy.io import fits
-from typing import Tuple
+from typing import Tuple, Union
 import os
 
 class FitsFile:
@@ -21,6 +21,52 @@ class FitsFile:
         self._image = image
         self._header = header
         self._dimensions = image.shape
+    
+    def __add__(self, other: Union["FitsFile", np.ndarray, float]) -> "FitsFile":
+        """
+        TODO
+        """
+
+        if self._image is None:
+            raise ValueError("image must exist")
+        
+        if isinstance(value, "FitsFile"):
+            if value._dimensions == self._dimensions:
+                return FitsFile(self._image+value._image, self._header)
+            else:
+                raise ValueError("sides do not have same shape")
+        elif isinstance(value, np.ndarray):
+            if value.shape == self._dimensions:
+                return FitsFile(self._image+value, self._header)
+            else:
+                raise ValueError("sides do not have same shape")
+        else:
+            value = float(value)
+            return FitsFile(self._image+value, self._header)
+
+    def __sub__(self, other: Union["FitsFile", np.ndarray, float]) -> "FitsFile":
+        """
+        TODO
+        """
+        
+        return self + (-1*other)
+    
+    def __mul__(self, value: float) -> "FitsFile":
+        """
+        TODO
+        """
+
+        if self._image is None:
+            raise ValueError("image must exist")
+        value = float(value)
+        return FitsFile(self._image*value, self._header)
+
+    def __truediv__(self, value: float) -> "FitsFile":
+        """
+        TODO
+        """
+
+        return self * (1/value)
 
 def from_file(fname: str) -> FitsFile:
     """
