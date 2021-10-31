@@ -133,3 +133,11 @@ class SingleFrameReducer:
         """
 
         return np.copy(self._dark_current_frame)
+    
+    def flat_frame(self) -> Image.Image:
+        """
+        TODO
+        """
+
+        return np.copy(self._normalized_flat_frame)
+
