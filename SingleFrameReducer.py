@@ -1,5 +1,6 @@
 import numpy as np
 import Image
+import FitsFile
 from glob import glob
 from typing import Union, List
 
@@ -39,7 +40,8 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        bias_frames = [Image.from_file(fname) for fname in file_name_list]
+        bias_frames = [FitsFile.from_file(fname).multiply_gain().image() for fname in file_name_list]
+
         self._bias_frame = np.mean(bias_frames, axis=0)
 
     def set_dark_current_frames(self, file_name: Union[str, List[str]]) -> None:
@@ -76,10 +78,10 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        dark_current_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
-        dark_current_frames_bias_subtracted = [self.bias_subtract(frame[0]) for frame in dark_current_frames_full]
+        dark_current_files = [FitsFile.from_file(fname).multiply_gain() for fname in file_name_list]
+        dark_current_frames_bias_subtracted = [self.bias_subtract(frame.image()) for frame in dark_current_files]
 
-        exposure_times = [frame[1]["EXPTIME"] for frame in dark_current_frames_full]
+        exposure_times = [frame.from_header("EGAIN") for frame in dark_current_files]
         for frame, exposure_time in zip(dark_current_frames_bias_subtracted, exposure_times):
             frame = frame/exposure_time
         self._dark_current_frame = np.mean(dark_current_frames_bias_subtracted, axis=0)
@@ -118,8 +120,8 @@ class SingleFrameReducer:
         if len(file_name_list) == 0:
             raise Exception("No files specified or file not found.")
         
-        flat_frames_full = [Image.from_file(fname, True) for fname in file_name_list]
-        flat_frames_dark_subtracted = [self.dark_subtract(frame[0], frame[1]["EXPTIME"]) for frame in flat_frames_full]
+        flat_frames_files = [FitsFile.from_file(fname).multiply_gain() for fname in file_name_list]
+        flat_frames_dark_subtracted = [self.dark_subtract(frame.image(), frame.from_header("EXPTIME")) for frame in flat_frames_files]
         mean_flat_frame = np.mean(flat_frames_dark_subtracted, axis=0)
         self._normalized_flat_frame = mean_flat_frame/np.mean(mean_flat_frame)
 
@@ -251,4 +253,3 @@ class SingleFrameReducer:
         """
 
         return np.copy(self._normalized_flat_frame)
-

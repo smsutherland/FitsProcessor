@@ -27,21 +27,4 @@ def from_array(arr: np.ndarray) -> Image:
     
     if type(arr) != np.ndarray:
         arr = np.array(arr)
-    return arr.copy().view(Image)
-
-def from_file(fname: str, return_header: bool = False, multiply_gain: bool = True) -> Union[Image, Tuple[Image, fits.header.Header]]:
-    """
-    TODO
-    """
-
-    if not os.path.exists(fname):
-        raise FileNotFoundError(f"file '{fname} does not exist'")
-    image = from_array(fits.getdata(fname))
-
-    header = fits.getheader(fname)
-    if multiply_gain:
-        image = image*header["EGAIN"]
-    
-    if not return_header:
-        return image
-    return (image, header)
+    return arr.copy().view(Image).astype(float)
