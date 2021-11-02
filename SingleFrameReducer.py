@@ -79,7 +79,7 @@ class SingleFrameReducer:
             raise Exception("No files specified or file not found.")
         
         dark_current_files = [FitsFile.from_file(fname).multiply_gain() for fname in file_name_list]
-        dark_current_frames_bias_subtracted = [self.bias_subtract(frame.image()) for frame in dark_current_files]
+        dark_current_frames_bias_subtracted = [self.bias_subtract(frame.image(), False) for frame in dark_current_files]
 
         exposure_times = [frame.from_header("EGAIN") for frame in dark_current_files]
         for frame, exposure_time in zip(dark_current_frames_bias_subtracted, exposure_times):
@@ -121,12 +121,12 @@ class SingleFrameReducer:
             raise Exception("No files specified or file not found.")
         
         flat_frames_files = [FitsFile.from_file(fname).multiply_gain() for fname in file_name_list]
-        flat_frames_dark_subtracted = [self.dark_subtract(frame.image(), frame.from_header("EXPTIME")) for frame in flat_frames_files]
+        flat_frames_dark_subtracted = [self.dark_subtract(frame.image(), frame.from_header("EXPTIME"), False) for frame in flat_frames_files]
         mean_flat_frame = np.mean(flat_frames_dark_subtracted, axis=0)
         self._normalized_flat_frame = mean_flat_frame/np.mean(mean_flat_frame)
 
     
-    def bias_subtract(self, frame: Image.Image) -> Image.Image:
+    def bias_subtract(self, frame: Image.Image, clip: bool = True) -> Image.Image:
         """
         Subtract bias from an Image.
 
@@ -149,10 +149,12 @@ class SingleFrameReducer:
 
         if self._bias_frame is None:
             raise Exception("call set_bias_frames before bias subtracting")
-        
-        return frame - self._bias_frame
+        if clip:
+            return np.maximum(frame - self._bias_frame, 0)
+        else:
+            return frame - self._bias_frame
 
-    def dark_subtract(self, frame: Image.Image, exposure_time: float) -> Image.Image:
+    def dark_subtract(self, frame: Image.Image, exposure_time: float, clip: bool = True) -> Image.Image:
         """
         Subtract bias and dark current from an Image.
 
@@ -182,9 +184,12 @@ class SingleFrameReducer:
         if self._dark_current_frame is None:
             raise Exception("call set_dark_current_frames before dark subtracting")
         
-        return self.bias_subtract(frame) - exposure_time*self._dark_current_frame
+        if clip:
+            return np.maximum(self.bias_subtract(frame, False) - exposure_time*self._dark_current_frame, 0)
+        else:
+            return self.bias_subtract(frame, False) - exposure_time*self._dark_current_frame
     
-    def flatten(self, frame: Image.Image, exposure_time: float) -> Image.Image:
+    def flatten(self, frame: Image.Image, exposure_time: float, clip: bool = True) -> Image.Image:
         """
         Dark subtract and flatten an Image.
 
@@ -216,7 +221,10 @@ class SingleFrameReducer:
         if self._normalized_flat_frame is None:
             raise Exception("set set_flat_frames before flattening")
         
-        return self.dark_subtract(frame, exposure_time)/self._normalized_flat_frame
+        if clip:
+            return np.maximum(self.dark_subtract(frame, exposure_time, False)/self._normalized_flat_frame, 0)
+        else:
+            return self.dark_subtract(frame, exposure_time, False)/self._normalized_flat_frame
 
     def bias_frame(self) -> Image.Image:
         """
